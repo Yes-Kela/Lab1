@@ -2,27 +2,39 @@
 #include <stdlib.h>
 #include <math.h>
 
-int Prepare(double* array, int capacity);
-int SelectData(double* array, int size);
-double ComputeResult(double* array, int size);
-int Check(double* array, double result, int size);
+int Prepare(double* resistance, int capacity);
+int SelectData(double* resistance, int size);
+double ComputeResult(double* resistance, int size);
+int Check(double* resistance, double result, int size);
 int iscorrect(double value, double reference);
 int isequal(double a, double b);
+
+const int MILLI = 1000;
 
 int main(void)
 {
     const int MAX_LEN = 100;
 
     double resistance[MAX_LEN] = {};
+    printf("Enter voltage and amperage for all measurements (one measurement in one line)\n");
+    printf("(Enter non-numeric value at the end):\n");
     int real_size = Prepare(resistance, MAX_LEN);
 
     int new_size = SelectData(resistance, real_size);
-    printf("new_size = %d\n", new_size);
-    /*
+
     double resistance_final = ComputeResult(resistance, new_size);
 
-    Check(resistance, resistance_final, new_size);
-    */
+    if (Check(resistance, resistance_final, new_size) == 1)
+    {
+        printf("Congratulations!!! The mean deviation in absolute value is close to zero "
+               "so result is correct!\n");
+    }
+    else
+    {
+        printf("Ooops! The mean deviation is quite big...\n"
+               "Experiment didn't go according to plan...\n");
+    }
+
     return 0;
 }
 
@@ -39,13 +51,11 @@ int Prepare(double* resistance, int capacity)
         {
             if (!isequal(ampere, 0) && !isequal(volt, 0))
             {
-                //printf("Alright!\n");
                 voltage[correct] = volt;
                 amperage[correct] = ampere;
             }
             else
             {
-                //printf("\n***\nVoltage or amperage cannot be null! Try again!\n***\n");
                 free(voltage);
                 free(amperage);
                 return -1;
@@ -59,7 +69,7 @@ int Prepare(double* resistance, int capacity)
 
     for (int j = 0; j < correct; j++)
     {
-        resistance[j] = voltage[j] / amperage[j];
+        resistance[j] = voltage[j] / amperage[j] * MILLI;
     }
 
     free(voltage);
@@ -68,26 +78,26 @@ int Prepare(double* resistance, int capacity)
 }
 
 
-int SelectData(double* array, int size)
+int SelectData(double* resistance, int size)
 {
     double total = 0;
     for (int i = 0; i < size; i++)
     {
-        total += array[i];
+        total += resistance[i];
     }
 
-    double array_average = total / size;
+    double resistance_average = total / size;
 
     int num_incorrect = 0;
     for (int i = 0; i < size; i++)
     {
         int flag = 0;
-        if (!iscorrect(array[i], array_average))
+        if (!iscorrect(resistance[i], resistance_average))
         {
             int j = i;
             for (; j < size; j++)
             {
-                if (iscorrect(array[j], array_average))
+                if (iscorrect(resistance[j], resistance_average))
                 {
                     num_incorrect = 0;
                     flag = 1;
@@ -98,9 +108,9 @@ int SelectData(double* array, int size)
                     num_incorrect++;
                 }
             }
-            double temp = array[i];
-            array[i] = array[j];
-            array[j] = temp;
+            double temp = resistance[i];
+            resistance[i] = resistance[j];
+            resistance[j] = temp;
         }
         if (flag == 0)
         {
@@ -111,15 +121,38 @@ int SelectData(double* array, int size)
     return (size - num_incorrect);
 }
 
-/*
-double ComputeResult(double* array, int size)
+double ComputeResult(double* resistance, int size)
 {
+    double sum_resistance = 0, resistance_final = 0, deviation = 0, sum_delta_res = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        sum_resistance += resistance[i];
+    }
+
+    resistance_final = sum_resistance/size;
+
+    for (int j = 0; j < size; j++)
+    {
+        sum_delta_res += (resistance[j]- resistance_final)*(resistance[j]- resistance_final);
+    }
+
+    deviation = sqrt(sum_delta_res)/size;
+
+    printf("The result is: (%g +- %g) Ohms\n", resistance_final, deviation);
+
+    return resistance_final;
 }
 
-int Check(double* array, double result, int size)
+int Check(double* resistance, double result, int size)
 {
+    double sum = 0;
+    for (int i = 0; i < size; i++)
+    {
+        sum += (resistance[i] - result);
+    }
+    return isequal(sum / size, 0);
 }
-*/
 
 int iscorrect(double value, double reference)
 {
@@ -139,5 +172,3 @@ int isequal(double a, double b)
     }
     return 0;
 }
-
-
